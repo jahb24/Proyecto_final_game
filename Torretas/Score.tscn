@@ -1,0 +1,544 @@
+[gd_scene load_steps=31 format=2]
+
+[ext_resource path="res://Score.gd" type="Script" id=1]
+[ext_resource path="res://assets/fonts/fuente_chida.ttf" type="DynamicFontData" id=2]
+[ext_resource path="res://assets/fonts/fuente_menu.ttf" type="DynamicFontData" id=3]
+[ext_resource path="res://assets/sound/rally-x.mp3" type="AudioStream" id=4]
+[ext_resource path="res://assets/reset.png" type="Texture" id=5]
+[ext_resource path="res://assets/animated/explosion3.png" type="Texture" id=6]
+[ext_resource path="res://assets/win.png" type="Texture" id=7]
+[ext_resource path="res://assets/gameover.png" type="Texture" id=8]
+
+[sub_resource type="Shader" id=3]
+code = "shader_type canvas_item;
+
+uniform sampler2D iChannel0;
+uniform sampler2D iChannel1;
+uniform sampler2D iChannel2;
+
+uniform float screen_resolution = 1;
+
+mat2 rot_dist(float s, float d)
+{
+    float angularspeed = s * pow(d, 8.0);
+    float cas = cos(angularspeed);
+    float sas = sin(angularspeed);
+    return mat2(vec2(cas, -sas), vec2(sas, cas));
+}
+
+void fragment()
+{
+	
+	
+    vec3 ring_color = vec3(0.976, 0.447, 0.023);
+    
+    vec2 uv = FRAGCOORD.xy/(1.0 / SCREEN_PIXEL_SIZE);
+    float ratio = (1.0 / SCREEN_PIXEL_SIZE).y/(1.0 / SCREEN_PIXEL_SIZE).x;
+    uv.y *= ratio;
+    
+    vec2 center = ((1.0 / SCREEN_PIXEL_SIZE).xy * .5f) / (1.0 / SCREEN_PIXEL_SIZE).xy;
+    //center = iMouse.xy / iResolution.xy;
+    center.y *= ratio;
+    
+    float _dist = distance(uv, center);
+    float _s = .15;
+    float _a = .005;
+    vec2 uvp = uv + min(texture(iChannel2, _s * vec2(uv.x + TIME * .1, uv.y + TIME * -.3)).r,
+                        texture(iChannel2, _s * vec2(uv.x + TIME * -.3, uv.y + TIME * .2)).r) * _a * pow(1. - _dist, 5.);
+    
+    float dist = distance(uvp, center);
+    float idist = 1.0 - dist;
+    vec2 dir = normalize(uv - center);
+    
+    // Mask
+    float m = step(.06, dist);
+    m *= smoothstep(.065, .08, dist);
+    m = (1.0 - dist * 1.6) * 2. * m;
+	float mask = m;
+    
+    // Phases
+    float speed = -0.06;
+    float phase1 = fract(TIME * speed + .5);
+    float phase2 = fract(TIME * speed);
+    
+    float pidist = pow(idist, 2.3);
+    vec2 uv1 = (dir * pidist * .2) + phase1 * dir;
+    vec2 uv2 = (dir * pidist * .2) + phase2 * dir;
+    
+    // Samplings
+    float lerp = abs((.5 - phase1) / .5);
+    float sampling1 = texture(iChannel0, uv1 * rot_dist(2.4, idist)).r;
+    float sampling2 = texture(iChannel0, uv2 * rot_dist(2.4, idist)).r;
+    
+    float sampling3 = texture(iChannel0, uv1 * 2. * rot_dist(2.6, idist)).g;
+    float sampling4 = texture(iChannel0, uv2 * 2. * rot_dist(2.6, idist)).g;
+    
+    float sampling5 = texture(iChannel1, uv1 * rot_dist(4.6, idist) * .4).r;
+    float sampling6 = texture(iChannel1, uv2 * rot_dist(4.6, idist) * .6).r;
+    
+    float stars = (1. - smoothstep(0.22, 0.34, mix(sampling3, sampling4, lerp))) * 0.4;
+    
+    vec3 sp = mix(sampling1, sampling2, lerp) * vec3(1.);
+    sp *= 0.2;
+   	sp += stars * vec3(0.13, 0.31, 0.46);
+    sp += smoothstep(0.26, 0.14, mix(sampling5, sampling6, lerp)) * vec3(0.7) * pow(idist, 8.) * ring_color;
+    
+    vec3 finalSamp = sp;
+    vec3 col = ring_color * pow(1.0 - dist, 7.);
+    float ring = pow(smoothstep(.32, .08, dist * 1.5) * 3.5, 2.8) + 1.;
+
+    
+    
+    COLOR = vec4(finalSamp * mask + 1.2 * ring * mask * finalSamp * col, 1.);
+}"
+
+[sub_resource type="ShaderMaterial" id=12]
+shader = SubResource( 3 )
+shader_param/screen_resolution = 1.0
+
+[sub_resource type="Shader" id=13]
+code = "shader_type canvas_item;
+
+uniform vec4 color_gap: hint_color = vec4(0.25);
+uniform vec4 color_stripe: hint_color = vec4(1.0, 0.75, 0.0, 1.0);
+uniform float divisions = 8.0; // increase for more stripe density
+uniform float stripe_bias = 2.5; // 1.0 means no stripes; 2.0 means stripes and gaps are equal size
+uniform float speed = 0.1;
+uniform float angle = 0.7854; // in radians
+
+void fragment() {
+	float w = cos(angle) * UV.x + sin(angle) * UV.y - speed * TIME;
+	if (floor(mod(w * divisions, stripe_bias)) < 0.0001) {
+		COLOR = color_gap;
+	} else {
+		COLOR = color_stripe;
+	}
+}"
+
+[sub_resource type="ShaderMaterial" id=14]
+shader = SubResource( 13 )
+shader_param/color_gap = Color( 0.25, 0.25, 0.25, 0.25 )
+shader_param/color_stripe = Color( 1, 0.75, 0, 1 )
+shader_param/divisions = 8.0
+shader_param/stripe_bias = 2.5
+shader_param/speed = 0.1
+shader_param/angle = 0.7854
+
+[sub_resource type="Shader" id=10]
+code = "shader_type canvas_item;
+uniform vec2 SCALE = vec2(100, 100);
+
+float HexDist(vec2 p) {
+	p = abs(p);
+    
+    float c = dot(p, normalize(vec2(1,1.73)));
+    c = max(c, p.x);
+    
+    return c;
+}
+
+vec4 HexCoords(vec2 uv) {
+	vec2 r = vec2(1, 1.73);
+    vec2 h = r*.5;
+    
+    vec2 a = mod(uv, r)-h;
+    vec2 b = mod(uv-h, r)-h;
+    
+    vec2 gv = dot(a, a) < dot(b,b) ? a : b;
+    
+    float x = atan(gv.x, gv.y);
+    float y = .5-HexDist(gv);
+    vec2 id = uv-gv;
+    return vec4(x, y, id.x,id.y);
+}
+
+vec2 random(vec2 uv){
+    uv = vec2( dot(uv, vec2(127.1,311.7) ),
+               dot(uv, vec2(269.5,183.3) ) );
+    return -1.0 + 2.0 * fract(sin(uv) * 43758.5453123);
+}
+
+float noise(vec2 uv) {
+    vec2 uv_index = floor(uv);
+    vec2 uv_fract = fract(uv);
+
+    vec2 blur = smoothstep(0.0, 1.0, uv_fract);
+
+    return mix( mix( dot( random(uv_index + vec2(0.0,0.0) ), uv_fract - vec2(0.0,0.0) ),
+                     dot( random(uv_index + vec2(1.0,0.0) ), uv_fract - vec2(1.0,0.0) ), blur.x),
+                mix( dot( random(uv_index + vec2(0.0,1.0) ), uv_fract - vec2(0.0,1.0) ),
+                     dot( random(uv_index + vec2(1.0,1.0) ), uv_fract - vec2(1.0,1.0) ), blur.x), blur.y) + 0.5;
+}
+
+float stripes(vec2 p, float s) {
+	p *= s;
+	float n = fract(p.x - p.y * 1.73);
+	if (n > 0.75 || n < 0.25)
+		return 0.5;
+	return 0.25;
+}
+
+void fragment() {
+	vec2 uv = UV * SCALE;
+    uv *= 10.0;
+    vec4 hc = HexCoords(uv / 500.0);
+    
+	int i = hc.y < 0.05 ? 0 : (hc.y > 0.15 ? 1 : 2);
+	vec3 xcol1 = vec3(stripes(uv.xy, 0.005)) * noise(hc.zw / 3.0 + TIME);
+	vec3 xcol2 = vec3(0.375) * noise(hc.zw / 3.0 + TIME * -1.0);
+    vec3 col = i == 0 ? vec3(0.125, 0.125, 0.125) : (i == 1 ? xcol1 : xcol2);
+
+    COLOR = vec4(col, 1.0);
+}"
+
+[sub_resource type="ShaderMaterial" id=11]
+shader = SubResource( 10 )
+shader_param/SCALE = Vector2( 100, 100 )
+
+[sub_resource type="DynamicFont" id=5]
+size = 32
+font_data = ExtResource( 3 )
+
+[sub_resource type="DynamicFont" id=6]
+size = 32
+font_data = ExtResource( 3 )
+
+[sub_resource type="DynamicFont" id=7]
+size = 32
+font_data = ExtResource( 3 )
+
+[sub_resource type="DynamicFont" id=9]
+size = 28
+font_data = ExtResource( 2 )
+
+[sub_resource type="DynamicFont" id=2]
+size = 28
+font_data = ExtResource( 2 )
+
+[sub_resource type="DynamicFont" id=15]
+size = 28
+font_data = ExtResource( 2 )
+
+[sub_resource type="DynamicFont" id=4]
+size = 20
+font_data = ExtResource( 3 )
+
+[sub_resource type="AtlasTexture" id=8]
+flags = 4
+atlas = ExtResource( 6 )
+region = Rect2( 0, 0, 199, 239 )
+
+[sub_resource type="AtlasTexture" id=16]
+flags = 4
+atlas = ExtResource( 6 )
+region = Rect2( 199, 0, 199, 239 )
+
+[sub_resource type="AtlasTexture" id=17]
+flags = 4
+atlas = ExtResource( 6 )
+region = Rect2( 398, 0, 199, 239 )
+
+[sub_resource type="AtlasTexture" id=18]
+flags = 4
+atlas = ExtResource( 6 )
+region = Rect2( 0, 239, 199, 239 )
+
+[sub_resource type="AtlasTexture" id=19]
+flags = 4
+atlas = ExtResource( 6 )
+region = Rect2( 199, 239, 199, 239 )
+
+[sub_resource type="AtlasTexture" id=20]
+flags = 4
+atlas = ExtResource( 6 )
+region = Rect2( 398, 239, 199, 239 )
+
+[sub_resource type="SpriteFrames" id=21]
+animations = [ {
+"frames": [ SubResource( 8 ), SubResource( 16 ), SubResource( 17 ), SubResource( 18 ), SubResource( 19 ), SubResource( 20 ) ],
+"loop": true,
+"name": "default",
+"speed": 10.0
+} ]
+
+[sub_resource type="Shader" id=22]
+code = "shader_type canvas_item;
+render_mode unshaded;
+
+uniform int iterations = 20;
+uniform float formuparam = 1.00;
+
+uniform int volsteps = 20;
+uniform float stepsize = 0.1;
+
+uniform float zoom = 0.800;
+uniform float tile = 0.5;
+uniform float speed = 0.001;
+
+uniform float brightness = 0.002;
+uniform float darkmatter = 0.100;
+uniform float distfading = 0.650;
+uniform float saturation = 0.750;
+
+uniform vec2 iResolution = vec2(192, 192);
+uniform vec2 iMouse = vec2(0,0);
+
+float SCurve (float value) {
+
+    if (value < 0.5)
+    {
+        return value * value * value * value * value * 16.0; 
+    }
+    
+    value -= 1.0;
+    
+    return value * value * value * value * value * 16.0 + 1.0;
+}
+
+void fragment()
+{
+	//get coords and direction
+	vec2 uv=FRAGCOORD.xy/iResolution.xy-.5;
+	uv.y*=iResolution.y/iResolution.x;
+	vec3 dir=vec3(uv*zoom,1.);
+	float time=TIME*speed+.25;
+
+	//mouse rotation
+	float a1=0.5+iMouse.x/iResolution.x*2.;
+	float a2=0.8+iMouse.y/iResolution.y*2.;
+	mat2 rot1=mat2(vec2(cos(a1),sin(a1)),vec2(-sin(a1),cos(a1)));
+	mat2 rot2=mat2(vec2(cos(a2),sin(a2)),vec2(-sin(a2),cos(a2)));
+	dir.xy*=rot1;
+	dir.xz*=rot2;
+	vec3 from=vec3(1.0,0.5,0.5);
+	from-=vec3(0.0,time,0.0);
+	from.xz*=rot1;
+	from.xy*=rot2;
+	
+	//volumetric rendering
+	float s=0.1,fade=1.;
+	vec3 v=vec3(0.);
+	for (int r=0; r<volsteps; r++) {
+		vec3 p=from+s*dir*0.5;
+		p = abs(vec3(tile)-mod(p,vec3(tile*2.))); // tiling fold
+		float pa,a=pa=0.;
+		for (int i=0; i<iterations; i++) { 
+			p=abs(p)/dot(p,p)-formuparam; // the magic formula
+			a+=abs(length(p)-pa); // absolute sum of average change
+			pa=length(p);
+		}
+		float dm=max(0.,darkmatter-a*a*.001); //dark matter
+		a = pow(a, 2.3); // add contrast
+		if (r>6) fade*=1.-dm; // dark matter, don't render near
+		//v+=vec3(dm,dm*.5,0.);
+		v+=fade;
+		v+=vec3(s,s*s,s*s*s*s)*a*brightness*fade; // coloring based on distance
+		fade*=distfading; // distance fading
+		s+=stepsize;
+	}
+    
+	v=mix(vec3(length(v)),v,saturation); //color adjust
+    
+    vec4 C = vec4(v*.01,1.);
+    
+     	C.r = pow(C.r, 0.35); 
+ 	 	C.g = pow(C.g, 0.36); 
+ 	 	C.b = pow(C.b, 0.38); 
+ 	
+    vec4 L = C;   	
+    
+    COLOR.r = mix(L.r, SCurve(C.r), 0.7); 
+    COLOR.g = mix(L.g, SCurve(C.g), 1.0); 
+    COLOR.b = mix(L.b, SCurve(C.b), 0.2);     	
+	
+}"
+
+[sub_resource type="ShaderMaterial" id=23]
+shader = SubResource( 22 )
+shader_param/iterations = 20
+shader_param/formuparam = 1.0
+shader_param/volsteps = 20
+shader_param/stepsize = 0.1
+shader_param/zoom = 0.8
+shader_param/tile = 0.5
+shader_param/speed = 0.001
+shader_param/brightness = 0.002
+shader_param/darkmatter = 0.1
+shader_param/distfading = 0.65
+shader_param/saturation = 0.75
+shader_param/iResolution = Vector2( 192, 192 )
+shader_param/iMouse = Vector2( 0, 0 )
+
+[node name="Score" type="Node2D"]
+pause_mode = 2
+script = ExtResource( 1 )
+
+[node name="Fondo3" type="ColorRect" parent="."]
+visible = false
+material = SubResource( 12 )
+margin_right = 1280.0
+margin_bottom = 720.0
+
+[node name="Fondo2" type="ColorRect" parent="."]
+visible = false
+material = SubResource( 14 )
+margin_right = 1280.0
+margin_bottom = 720.0
+
+[node name="Fondo1" type="ColorRect" parent="."]
+visible = false
+material = SubResource( 11 )
+margin_right = 1280.0
+margin_bottom = 720.0
+
+[node name="ambiente" type="AudioStreamPlayer" parent="."]
+pause_mode = 1
+stream = ExtResource( 4 )
+autoplay = true
+
+[node name="Menu" type="CenterContainer" parent="."]
+visible = false
+margin_right = 1280.0
+margin_bottom = 720.0
+
+[node name="VBox" type="VBoxContainer" parent="Menu"]
+margin_left = 554.0
+margin_top = 286.0
+margin_right = 726.0
+margin_bottom = 434.0
+custom_constants/separation = 5
+
+[node name="Continue" type="Button" parent="Menu/VBox"]
+margin_right = 172.0
+margin_bottom = 46.0
+rect_min_size = Vector2( 0, 32 )
+custom_fonts/font = SubResource( 5 )
+text = "Continue"
+
+[node name="GoBack" type="Button" parent="Menu/VBox"]
+margin_top = 51.0
+margin_right = 172.0
+margin_bottom = 97.0
+rect_min_size = Vector2( 0, 32 )
+custom_fonts/font = SubResource( 6 )
+text = "Go Back"
+
+[node name="Exit" type="Button" parent="Menu/VBox"]
+margin_top = 102.0
+margin_right = 172.0
+margin_bottom = 148.0
+rect_min_size = Vector2( 0, 32 )
+custom_fonts/font = SubResource( 7 )
+text = "Exit"
+
+[node name="HUD" type="Control" parent="."]
+margin_right = 1280.0
+margin_bottom = 126.0
+
+[node name="Level" type="Label" parent="HUD"]
+margin_left = 50.0
+margin_top = 30.0
+margin_right = 90.0
+margin_bottom = 44.0
+custom_fonts/font = SubResource( 9 )
+text = "Level: 1"
+
+[node name="Score" type="Label" parent="HUD"]
+margin_left = 585.0
+margin_top = 30.0
+margin_right = 699.0
+margin_bottom = 71.0
+custom_fonts/font = SubResource( 2 )
+text = "Score: 0"
+
+[node name="Time" type="Label" parent="HUD"]
+margin_left = 1110.0
+margin_top = 30.0
+margin_right = 1181.0
+margin_bottom = 71.0
+custom_fonts/font = SubResource( 15 )
+text = "Time: 5:00"
+
+[node name="Audio" type="Label" parent="HUD"]
+margin_left = 25.0
+margin_top = 87.0
+margin_right = 167.0
+margin_bottom = 128.0
+custom_fonts/font = SubResource( 15 )
+text = "Audio"
+align = 1
+
+[node name="Timer" type="Timer" parent="."]
+pause_mode = 1
+wait_time = 300.0
+one_shot = true
+
+[node name="Pause" type="Button" parent="."]
+process_priority = 100
+margin_left = 605.0
+margin_top = 90.0
+margin_right = 677.0
+margin_bottom = 122.0
+rect_min_size = Vector2( 0, 32 )
+custom_fonts/font = SubResource( 4 )
+text = "Pause"
+icon_align = 1
+
+[node name="Mute" type="CheckButton" parent="."]
+margin_left = 56.0
+margin_top = 122.0
+margin_right = 132.0
+margin_bottom = 162.0
+pressed = true
+
+[node name="GO" type="TextureRect" parent="."]
+visible = false
+margin_left = 509.0
+margin_top = 219.0
+margin_right = 1037.0
+margin_bottom = 747.0
+rect_scale = Vector2( 0.5, 0.5 )
+texture = ExtResource( 8 )
+
+[node name="Explosion" type="AnimatedSprite" parent="."]
+visible = false
+position = Vector2( 873, 524 )
+frames = SubResource( 21 )
+
+[node name="Explosion2" type="AnimatedSprite" parent="."]
+visible = false
+position = Vector2( 406, 189 )
+frames = SubResource( 21 )
+
+[node name="FondoWin" type="ColorRect" parent="."]
+visible = false
+material = SubResource( 23 )
+margin_right = 1280.0
+margin_bottom = 720.0
+
+[node name="win" type="TextureRect" parent="."]
+visible = false
+margin_left = 417.0
+margin_top = 189.0
+margin_right = 857.0
+margin_bottom = 479.0
+texture = ExtResource( 7 )
+
+[node name="Restart" type="Button" parent="."]
+visible = false
+margin_left = 614.0
+margin_top = 77.0
+margin_right = 1138.0
+margin_bottom = 595.0
+rect_scale = Vector2( 0.1, 0.1 )
+icon = ExtResource( 5 )
+flat = true
+icon_align = 1
+
+[connection signal="pressed" from="Menu/VBox/Continue" to="." method="_on_Continue_pressed"]
+[connection signal="pressed" from="Menu/VBox/GoBack" to="." method="_on_GoBack_pressed"]
+[connection signal="pressed" from="Menu/VBox/Exit" to="." method="_on_Exit_pressed"]
+[connection signal="timeout" from="Timer" to="." method="_on_Timer_timeout"]
+[connection signal="pressed" from="Pause" to="." method="_on_Pause_pressed"]
+[connection signal="pressed" from="Mute" to="." method="_on_Mute_pressed"]
+[connection signal="pressed" from="Restart" to="." method="_on_Restart_pressed"]

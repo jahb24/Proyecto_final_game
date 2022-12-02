@@ -1,0 +1,44 @@
+[gd_scene load_steps=2 format=2]
+
+[ext_resource path="res://Inicio.gd" type="Script" id=1]
+
+[node name="Inicio" type="Node2D"]
+script = ExtResource( 1 )
+
+[node name="fondo" type="TextureRect" parent="."]
+margin_right = 40.0
+margin_bottom = 40.0
+
+[node name="rays" type="TextureRect" parent="."]
+margin_right = 40.0
+margin_bottom = 40.0
+
+[node name="fade_rays" type="Tween" parent="."]
+
+[node name="Saludo" type="CenterContainer" parent="."]
+margin_right = 40.0
+margin_bottom = 40.0
+
+[node name="Label" type="Label" parent="Saludo"]
+margin_left = 20.0
+margin_top = 13.0
+margin_right = 20.0
+margin_bottom = 27.0
+
+[node name="pantera" type="RigidBody2D" parent="."]
+
+[node name="AnimatedSprite" type="AnimatedSprite" parent="pantera"]
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="pantera"]
+
+[node name="VisibilityNotifier2D" type="VisibilityNotifier2D" parent="pantera"]
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="pantera"]
+
+[node name="roar" type="AudioStreamPlayer2D" parent="."]
+
+[node name="music" type="AudioStreamPlayer2D" parent="."]
+
+[node name="Timer" type="Timer" parent="."]
+
+[node name="fade_sound" type="Tween" parent="."]

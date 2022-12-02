@@ -1,0 +1,69 @@
+; Engine configuration file.
+; It's best edited using the editor UI and not directly,
+; since the parameters that go here are not all obvious.
+;
+; Format:
+;   [section] ; section goes between []
+;   param=value ; assign values to parameters
+
+config_version=4
+
+[application]
+
+config/name="Torretas"
+config/description="Fuentes:
+https://fonts.google.com/specimen/Permanent+Marker?query=perma
+https://fonts.google.com/specimen/Sono?query=sono
+Shaders:
+https://godotshaders.com/shader/super-hex/
+https://godotshaders.com/shader/animated-stripes/
+https://godotshaders.com/shader/cool-blackhole-shader/
+https://godotshaders.com/shader/star-nest/
+Música de fondo: 
+https://mobcup.net/ringtone/rally-x-92d4y9jz
+Efectos de sonido:
+https://www.videvo.net/es/efecto-de-sonido/mi-explosion-03-hpx/251585/
+http://www.sonidosmp3gratis.com/download.php?id=4623&sonido=laser%207
+Icono reset: https://www.google.com/url?sa=i&url=https%3A%2F%2Fwww.flaticon.es%2Ficono-gratis%2Freiniciar_5277913&psig=AOvVaw3K5kYpIjc9S_ctqWDA9v7w&ust=1670094004507000&source=images&cd=vfe&ved=0CBAQjRxqFwoTCNDu2ZLP2_sCFQAAAAAdAAAAABAD
+Animación de explosión: https://www.google.com/url?sa=i&url=https%3A%2F%2Fdepositphotos.com%2Fvector-images%2Ffire-animation-sequence.html&psig=AOvVaw2A7JSGtUZRYZjFGXhNN_1u&ust=1670092146265000&source=images&cd=vfe&ved=0CBAQjRxqFwoTCOjqzJ3I2_sCFQAAAAAdAAAAABAM
+Imágen de win:
+https://www.google.com/url?sa=i&url=http%3A%2F%2Fpixelartmaker.com%2Fart%2F5bf8b8c15978846&psig=AOvVaw2p82T_rpmq3ZZthnulKP5_&ust=1670099010127000&source=images&cd=vfe&ved=0CBAQjRxqFwoTCJCSquzh2_sCFQAAAAAdAAAAABAD
+Imágen de game over:
+https://www.google.com/url?sa=i&url=https%3A%2F%2Fpngimg.com%2Fimage%2F83374&psig=AOvVaw2pibsgLrdz4XFfApoK1chN&ust=1670100045380000&source=images&cd=vfe&ved=0CBAQjRxqFwoTCIiKl9Xl2_sCFQAAAAAdAAAAABAH"
+run/main_scene="res://Score.tscn"
+config/icon="res://icon.png"
+
+[audio]
+
+default_bus_layout=""
+
+[display]
+
+window/size/width=1280
+window/size/height=720
+
+[gui]
+
+common/drop_mouse_on_gui_input_disabled=true
+
+[input]
+
+izq={
+"deadzone": 0.5,
+"events": [ Object(InputEventKey,"resource_local_to_scene":false,"resource_name":"","device":0,"alt":false,"shift":false,"control":false,"meta":false,"command":false,"pressed":false,"scancode":0,"physical_scancode":65,"unicode":0,"echo":false,"script":null)
+ ]
+}
+
+[layer_names]
+
+2d_physics/layer_1="torreta"
+2d_physics/layer_2="enemigo"
+2d_physics/layer_3="misil"
+
+[physics]
+
+common/enable_pause_aware_picking=true
+
+[rendering]
+
+environment/default_environment="res://default_env.tres"

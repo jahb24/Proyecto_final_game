@@ -1,0 +1,41 @@
+[gd_scene load_steps=5 format=2]
+
+[ext_resource path="res://Bullet.gd" type="Script" id=1]
+[ext_resource path="res://assets/towerDefense_tilesheet.png" type="Texture" id=2]
+[ext_resource path="res://assets/sound/scifi002.mp3" type="AudioStream" id=3]
+
+[sub_resource type="CapsuleShape2D" id=1]
+radius = 7.0
+
+[node name="Bullet" type="RigidBody2D"]
+collision_layer = 4
+collision_mask = 2
+gravity_scale = 0.0
+contacts_reported = 1
+contact_monitor = true
+script = ExtResource( 1 )
+
+[node name="VisibilityNotifier2D" type="VisibilityNotifier2D" parent="."]
+visible = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource( 1 )
+
+[node name="bullet" type="Sprite" parent="."]
+texture = ExtResource( 2 )
+region_enabled = true
+region_rect = Rect2( 1368.35, 653.263, 15.7675, 38.891 )
+
+[node name="songshot" type="AudioStreamPlayer2D" parent="."]
+stream = ExtResource( 3 )
+
+[node name="fire" type="Sprite" parent="."]
+position = Vector2( 0, 29 )
+rotation = 3.13042
+scale = Vector2( 0.6, 0.6 )
+texture = ExtResource( 2 )
+region_enabled = true
+region_rect = Rect2( 1369, 780, 14, 40 )
+
+[connection signal="body_entered" from="." to="." method="_on_Bullet_body_entered"]
+[connection signal="screen_exited" from="VisibilityNotifier2D" to="." method="_on_VisibilityNotifier2D_screen_exited"]
